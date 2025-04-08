@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>MultiLurk</title>
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline';" />
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+    <!-- Load the Twitch embed script -->
+    <script src="https://player.twitch.tv/js/embed/v1.js"></script>
+
+    <!-- Create a Twitch.Player object. This will render within the placeholder div -->
+    <script type="text/javascript">
+      var players = {}
+      var ready_players = {}
+      function createPlayer(channel) {
+        if (players[channel] != null) { return }
+        let id = (channel + "-player")
+        players[channel] = new Twitch.Player(id, { channel })
+        
+        ready_players[channel] = false
+        players[channel].addEventListener(Twitch.Player.READY, function() {
+          ready_players[channel] = true
+        })
+      }
+
+      window.createPlayer = createPlayer;
+
+      function mainPlayer(main_channel) {
+        Object.keys(players).forEach(channel => {
+          if (ready_players[channel] == false) {
+            players[channel].addEventListener(Twitch.Player.READY, main)
+          } else {
+            main()
+          }
+
+          function main() {
+            let qualities = players[channel].getQualities()
+            qualities = qualities.filter(q => q.name != "auto")
+            qualities.sort((a, b) => {
+              return a.height < b.height ? -1 : 1
+            })
+            print(qualities)
+            if (channel == main_channel) {
+              players[channel].setQuality('auto')
+              print( channel + "==> auto")
+              players[channel].setMuted(false)
+              players[channel].setVolume(100)
+            } else {
+              let theQual = (qualities.length > 0) ? qualities[0].name : "auto"
+              players[channel].setQuality(theQual)
+              print( channel + "==>" + theQual)
+              players[channel].setMuted(true)
+            }
+          }
+        })
+      }
+
+      class PlayerEvent extends Event {
+        constructor(type, channel) {
+          super(type);
+          this.channel = channel;
+        }
+      }
+
+      function setPlayer(channel) {
+        let id = (channel + "-player")
+
+        if (!players[id]) {
+          createPlayer(channel, main);
+        } else {
+          players[channel].setChannel(channel);
+        }
+
+        // let event = new PlayerEvent("set_player", channel);
+        // window.dispatchEvent(event);
+      }
+
+      window.setPlayer = setPlayer;
+    </script>
+  </body>
+</html>
