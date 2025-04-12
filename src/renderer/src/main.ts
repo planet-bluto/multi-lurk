@@ -10,6 +10,7 @@ import "./extends/epoch"
 import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
+import ToastService from 'primevue/toastservice';
 
 import App from './App.vue'
 import { addChannel } from './persist'
@@ -26,14 +27,18 @@ app.use(PrimeVue, {
     preset: Aura
   }
 })
+app.use(ToastService)
+app.config.compilerOptions.isCustomElement = (tag) => tag === 'webview';
 app.mount('#app')
 
-window.electron.ipcRenderer.on('access_token', (_event, token: string) => {
-  console.log("Got Access Token: ", token)
-  window.localStorage.setItem("access_token", token)
-  window.location.reload()
-})
-
-window.electron.ipcRenderer.on('add_channel', (_event, channel: any) => {
-  addChannel(channel.name)
-})
+if (window.electron) {
+  window.electron.ipcRenderer.on('access_token', (_event, token: string) => {
+    console.log("Got Access Token: ", token)
+    window.localStorage.setItem("access_token", token)
+    window.location.reload()
+  })
+  
+  window.electron.ipcRenderer.on('add_channel', (_event, channel: any) => {
+    addChannel(channel.name)
+  })
+}

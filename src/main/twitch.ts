@@ -1,9 +1,9 @@
-import { ApiClient, HelixStream } from '@twurple/api';
+import { ApiClient, HelixUser } from '@twurple/api';
 import { StaticAuthProvider, getTokenInfo } from '@twurple/auth';
 
 var twitchLoggedIn = false
 var liveCheckInt
-export async function twitchAPI(accessToken: string, buildMenu: Function): Promise<void> {
+export async function twitchAPI(accessToken: string, buildMenu: Function): Promise<ApiClient | null> {
   if (liveCheckInt) {clearInterval(liveCheckInt)}
   // if (twitchLoggedIn) return;
   const clientId = 'ycckwz67ehj6urlv3dqz1ax9bcbo3j';
@@ -20,34 +20,39 @@ export async function twitchAPI(accessToken: string, buildMenu: Function): Promi
   if (thisUserId == null) {
     console.log("Fuck.... ", thisUserId)
     twitchLoggedIn = false
-    return
+    return null
   }
 
   async function sendLiveChannels() {
     let result = await apiClient.channels.getFollowedChannelsPaginated(thisUserId || "")
     let channels = await result.getAll()
   
-    let streamProms: Promise<HelixStream | null>[] = []
+    let userProms: Promise<HelixUser | null>[] = []
     
     channels.forEach(async (channel) => {
-      streamProms.push(new Promise(async (res, _rej) => {
-        let broadcaster = await channel.getBroadcaster()
-        let stream = await broadcaster.getStream()
-        res(stream)
+      userProms.push(new Promise(async (res, _rej) => {
+        let user = await channel.getBroadcaster()
+        res(user)
       }))
       
     })
+
+    let followedUsers = await Promise.all(userProms)
   
-    let streams = await Promise.all(streamProms)
-    streams.filter(stream => stream != null)
+    let streams = await apiClient.streams.getFollowedStreamsPaginated(thisUserId || "").getAll()
     console.log("Current Streams: ", streams)
     
     let channelObj = channels.map(channel => {
       let stream = streams.find(stream => stream?.userId == channel.broadcasterId)
       return {
         id: channel.broadcasterId,
+        picture: followedUsers.find(user => user?.id == channel.broadcasterId)?.profilePictureUrl,
         name: channel.broadcasterName,
         display_name: channel.broadcasterDisplayName,
+        game: stream?.gameName,
+        title: stream?.title,
+        startTime: (stream ? stream.startDate.valueOf() : null),
+        viewers: (stream ? stream.viewers : null),
         label: (stream ? `[LIVE] ${channel.broadcasterDisplayName} | ${stream.gameName} | ${stream.title}` : `[OFFLINE] ${channel.broadcasterDisplayName}` ),
         streaming: (stream != null)
       }
@@ -67,4 +72,6 @@ export async function twitchAPI(accessToken: string, buildMenu: Function): Promi
   liveCheckInt = setInterval(() => {
     sendLiveChannels()
   }, 60000)
+
+  return apiClient
 }

@@ -1,12 +1,22 @@
 <script setup lang="ts">
-import { onMounted, ref, useTemplateRef, watchEffect } from 'vue'
+import { onMounted, provide, Ref, ref, triggerRef, useTemplateRef, watchEffect } from 'vue'
 import { Form } from '@primevue/forms'
 import Dialog from 'primevue/dialog'
+import Popover from 'primevue/popover';
+import Toast, { ToastMessageOptions } from 'primevue/toast';
+import Button from 'primevue/button';
 import InputText from 'primevue/inputtext'
 // import mini_player from './components/mini_player.vue'
-import { addChannel, currentChannel, currentChannels } from './persist'
+import { addChannel, channelCache, currentChannel, currentChannels, followingChannels } from './persist'
 import Player from './components/Player.vue'
 import { Keybinds } from './keybinds'
+import { useToast } from 'primevue';
+
+import add_button_image from './assets/add_button.png'
+import side_icon_image from './assets/side_icon.png'
+console.log(add_button_image)
+
+const toast = useToast()
 
 // const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
 const mainContainer = useTemplateRef('mainContainer')
@@ -15,6 +25,8 @@ const othersContainer = useTemplateRef('othersContainer')
 
 const chatWidth = ref(500)
 const othersHeight = ref(100)
+
+const startupPopupVisible = ref(localStorage.getItem("access_token") == null)
 
 const popupVisible = ref(false)
 const addStreamChannel = ref('')
@@ -116,14 +128,15 @@ function startChatHandleDrag(_e: PointerEvent): void {
   draggingChatPos.value = [_e.clientX, _e.clientY]
   document.body.style.cursor = 'ew-resize'
 }
+provide("draggingChatHandle", draggingChatHandle)
 
 var draggingOthersHandle = ref(false)
 var draggingOthersPos = ref([0, 0])
-function startOthersHandleDrag(_e: PointerEvent): void {
-  draggingOthersHandle.value = true
-  draggingOthersPos.value = [_e.clientX, _e.clientY]
-  document.body.style.cursor = 'ew-resize'
-}
+// function startOthersHandleDrag(_e: PointerEvent): void {
+//   draggingOthersHandle.value = true
+//   draggingOthersPos.value = [_e.clientX, _e.clientY]
+//   document.body.style.cursor = 'ew-resize'
+// }
 
 document.body.addEventListener("pointermove", _e => {
   let current_pos = [_e.clientX, _e.clientY]
@@ -151,14 +164,217 @@ document.body.addEventListener("pointerup", _e => {
   draggingOthersHandle.value = false
   document.body.style.cursor = ''
 })
+
+function handleIframeLoad(id) {
+  // let iframe: HTMLIFrameElement = (e.target as HTMLIFrameElement)
+  let webView: any = document.getElementById(id)
+  webView.executeJavaScript(`function ffz_init()
+      {
+        var script = document.createElement('script');
+      
+        script.id = 'ffz_script';
+        script.type = 'text/javascript';
+        script.src = '//cdn2.frankerfacez.com/script/script.min.js?_=' + Date.now();
+      
+        if ( localStorage.ffzDebugMode == "true" ) {
+          // Developer Mode is enabled. But is the server running? Check before
+          // we include the script, otherwise someone could break their
+          // experience and not be able to recover.
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", "//localhost:8000/dev_server", true);
+          xhr.onload = function(e) {
+            var resp = JSON.parse(xhr.responseText);
+            console.log("FFZ: Development Server is present. Version " + resp.version + " running from: " + resp.path);
+            script.src = "//localhost:8000/script/script.js?_=" + Date.now();
+            document.body.classList.add("ffz-dev");
+            document.head.appendChild(script);
+          };
+          xhr.onerror = function(e) {
+            console.log("FFZ: Development Server is not present. Using CDN.");
+            document.head.appendChild(script);
+          };
+          return xhr.send(null);
+        }
+      
+        document.head.appendChild(script);
+      }
+      
+      ffz_init();`)
+  // if (window.electron) { window.electron.ipcRenderer.send('iframe-loaded', {id: id, url: webView.src}) }
+}
+
+function showWebView(channel) {
+  return ((window.electron != null) && channel == currentChannel.value)
+}
+
+function showIframe(channel) {
+  return ((window.electron == null) && channel == currentChannel.value)
+}
+
+function getHost() {
+  return window.location.host
+}
+
+const showRing = ref(false)
+
+
+const SECOND = 1000
+const MINUTE = SECOND * 60
+const HOUR = MINUTE * 60
+// const DAY = HOUR * 24
+
+// const WEEK = DAY * 7
+// const MONTH = DAY * 30
+// const YEAR = DAY * 365
+
+function parseDuration(duration: number) {
+    let hours = Math.floor(duration / HOUR)
+    let remainder = duration - (hours * HOUR)
+    let minutes = Math.floor(remainder / MINUTE)
+    let seconds = Math.floor((duration - (hours * HOUR) - (minutes * MINUTE)) / SECOND)
+    let milliseconds = (duration - (hours * HOUR) - (minutes * MINUTE) - (seconds * SECOND))
+
+    return {hours, minutes, seconds, milliseconds}
+}
+
+function parseDurationString(duration: number, include_seconds = false) {
+    let parsedDuration = parseDuration(duration)
+
+    return String(parsedDuration.hours).padStart(2, "0") + ":" + String(parsedDuration.minutes).padStart(2, "0") + (include_seconds ? ":" + String(parsedDuration.seconds).padStart(2, "0") : "")
+}
+
+const streamCard = useTemplateRef('stream-card')
+const cardChannel: Ref<any | null> = ref(null)
+
+const cardChannelTimestamp = ref("")
+var timestampInt: any = null
+async function showStreamCard(event, channel) {
+  if (typeof(channel) == "string") {
+    let foundChannel = followingChannels.value.find(c => c.name == channel)
+    // print(foundChannel)
+    if (foundChannel == null) {
+      foundChannel = channelCache.value.find(c => c.name == channel)
+    }
+
+    channel = foundChannel
+
+    print(channel)
+  }
+  if (timestampInt) { clearInterval(timestampInt) }
+
+  cardChannel.value = channel
+  if (channel.streaming) {
+    const updateTimestamp = () => {
+      cardChannelTimestamp.value = parseDurationString(Date.now() - channel.startTime, true)
+      triggerRef(cardChannelTimestamp)
+    }
+    timestampInt = setInterval(updateTimestamp, 1000)
+    updateTimestamp()
+  }
+
+  streamCard.value?.show(event)
+    try {
+      streamCard.value?.alignOverlay()
+    } catch (e) {
+      // yo I don't fucking caree
+      // console.error("kill all vue contributors kill all vue contributors kill all vue contributors kill all vue contributors kill all vue contributors kill all vue contributors kill all vue contributors kill all vue contributors kill all vue contributors: ", e)
+      1 // the number 1 :)
+    }
+}
+provide("showStreamCard", showStreamCard)
+
+function hideStreamCard() {
+  streamCard.value?.hide()
+}
+provide("hideStreamCard", hideStreamCard)
+
+function lerp(start, end, t) {
+  return start * (1 - t) + end * t;
+}
+
+
+const sidebar = useTemplateRef('sidebar')
+onMounted(() => {
+  sidebar.value?.addEventListener('scroll', (_e) => {
+    streamCard.value?.alignOverlay()
+  })
+})
+
+const sidebarInner = useTemplateRef('sidebarInner')
+var scrollValue = 0
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+onMounted(() => {
+  sidebarInner.value?.addEventListener('wheel', (_e: WheelEvent) => {
+    print(_e.deltaY)
+    scrollValue += (_e.deltaY)
+
+    scrollValue = clamp(scrollValue, 0, sidebarInner.value?.scrollHeight)
+  })
+})
+function lerpToScroll() {
+  if (sidebarInner.value) {
+    sidebarInner.value.scrollTop = lerp(sidebarInner.value.scrollTop, scrollValue, 0.2)
+  }
+  requestAnimationFrame(lerpToScroll)
+}
+lerpToScroll()
+
+window.toast = (arg: ToastMessageOptions) => {
+  print("erm: ", arg)
+  toast.add(arg)
+}
+
+function initiateLogin() {
+  window.electron.ipcRenderer.send('login')
+}
+
+function initiateLogout() {
+  localStorage.removeItem("access_token")
+  location.reload()
+}
+
+function tokenStored() {
+  return localStorage.getItem("access_token") != null
+}
 </script>
 
 <template>
+  <Toast position="bottom-left" group="bl" />
   <Dialog v-model:visible="popupVisible" header="Add Stream" @show="focusInput">
     <Form @submit="newStreamDialog">
       <InputText id="addStreamInput" v-model="addStreamChannel" type="text" />
     </Form>
   </Dialog>
+  <Popover ref="stream-card">
+    <div id="stream-card-inner">
+      <p id="stream-card-channel">{{ cardChannel?.display_name }}<span v-show="cardChannel.streaming" id="stream-card-game"> • {{ cardChannel.game }}</span></p>
+      <!-- <p v-show="cardChannel?.streaming" id="stream-card-viewcount">{{ cardChannel?.viewers }}</p> -->
+      <div id="stream-card-timestamp"><div id="stream-card-timestamp-live-dot" :style="`background-color: #${cardChannel.streaming ? 'ff2929' : '353535'}`"></div><p id="stream-card-timestamp-text">{{ (cardChannel?.streaming ? cardChannelTimestamp : "OFFLINE") }} <span style="opacity: 0.5 ;">|</span> {{ cardChannel?.viewers }} viewers</p></div>
+      <p v-show="cardChannel?.streaming" id="stream-card-title">{{ cardChannel?.title }}</p>
+    </div>
+  </Popover>
+  <Dialog v-model:visible="startupPopupVisible" header="MultiLurk!">
+    <p style="font-size: 18px; margin-bottom: 15px;">Welcome to <span style="color: #782ce9; font-weight: bold;">MultiLurk</span>! A Twitch client for watching, switching between, and keeping up with multiple streams at once!</p>
+    <div style="display: flex; gap: 15px">
+      <Button label="Login With Twitch!" severity="info" @click="initiateLogin"></Button>
+      <Button label="Logout" severity="danger" v-show="tokenStored" @click="initiateLogout"></Button>
+    </div>
+  </Dialog>
+  <div id="sidebar" ref="sidebar">
+    <img id="side-icon" :src="side_icon_image" @click="startupPopupVisible = true"></img>
+    <div id="sidebar-inner" ref="sidebarInner">
+      <div v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" @click="addChannel(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
+        <img class="sidebar-icon" :src="channel.picture" :style="`--ring-color: #${showRing ? (channel.streaming ? 'ff2929' : '353535') : '151515'}`"></img>
+        <div class="sidebar-dot-container">
+          <div class="sidebar-dot" :style="`--dot-color: #${(channel.streaming ? 'ff2929' : '353535')}`" v-show="!showRing"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="whole" :style="`--chat-width: ${chatWidth}px; --others-height: ${othersHeight}px`">
     <div id="left" ref="leftSide">
       <div id="player-container" ref="playerContainer">
@@ -177,7 +393,7 @@ document.body.addEventListener("pointerup", _e => {
         ref="othersContainer"
         :style="`--child-width: ${miniPlayerRes.width}px; --child-height: ${miniPlayerRes.height}px`"
       >
-        <div id="add-stream" class="widescreen" @click="popupVisible = true"></div>
+        <img id="add-stream" :flashing="currentChannels.length == 0" class="widescreen" @click="popupVisible = true" :src="add_button_image"></img>
         <div v-for="channel in currentChannels.filter((c: String) => c !== currentChannel)"
           :class="`widescreen ${channel}`"
           :id="`${channel}-transform`" >
@@ -193,12 +409,26 @@ document.body.addEventListener("pointerup", _e => {
     <div id="chat-handle" @pointerdown="startChatHandleDrag"></div>
     <div id="right">
       <div id="chat">
+        <webview
+          v-for="channel in currentChannels"
+          v-show="showWebView(channel)"
+          class="chat-embed"
+          :id="`${channel}_chat_embed`"
+          :style="`pointer-events: ${draggingChatHandle ? 'none' : 'all'}`"
+          :src="`https://www.twitch.tv/popout/${channel}/chat`"
+          @did-finish-load="handleIframeLoad(`${channel}_chat_embed`)"
+          allowpopups
+        >
+        </webview>
         <iframe
           v-for="channel in currentChannels"
-          v-show="channel === currentChannel"
-          id="chat_embed"
+          v-show="showIframe(channel)"
+          class="chat-embed"
+          :id="`${channel}_chat_embed`"
           :style="`pointer-events: ${draggingChatHandle ? 'none' : 'all'}`"
-          :src="`https://www.twitch.tv/embed/${channel}/chat?parent=localhost&darkpopout`"
+          :src="`https://www.twitch.tv/embed/${channel}/chat?parent=${getHost()}&darkpopout`"
+          @did-finish-load="handleIframeLoad(`${channel}_chat_embed`)"
+          allowpopups
         >
         </iframe>
       </div>
@@ -207,10 +437,66 @@ document.body.addEventListener("pointerup", _e => {
 </template>
 
 <style lang="css">
+p {
+  margin: 0;
+  padding: 0;
+}
+
+#stream-card-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#stream-card-channel {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+#stream-card-game {
+  font-weight: normal;
+  /* color: #aaa; */
+  opacity: 0.5;
+}
+
+#stream-card-viewcount {
+  font-size: 18px;
+  font-weight: bold;
+  /* color: #aaa; */
+  opacity: 0.5;
+}
+
+#stream-card-timestamp {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+#stream-card-timestamp-text {
+  font-size: 18px;
+  font-weight: bold;
+  /* color: #aaa; */
+  opacity: 0.5;
+}
+
+#stream-card-timestamp-live-dot {
+  width: 10px;
+  height: 10px;
+  /* background-color: #ff2929; */
+  border-radius: 50%;
+}
+
+#stream-card-title {
+  font-size: 18px;
+  font-weight: normal;
+  /* color: #aaa; */
+  opacity: 0.5;
+}
+
 #whole {
   display: flex;
   flex-direction: row;
-  width: calc(100% - 16px);
+  width: calc(100% - 16px - 64px);
   height: calc(100% - 16px);
   padding: 15px;
   gap: 12px;
@@ -220,6 +506,88 @@ document.body.addEventListener("pointerup", _e => {
   position: absolute;
   pointer-events: none;
   overflow: hidden;
+}
+
+#sidebar {
+  width: calc(64px + 10px);
+  height: 100%;
+  background-color: #252525;
+}
+
+#side-icon {
+  position: relative;
+  width: 100%;
+  height: auto;
+  /* margin-bottom: 12px; */
+  z-index: 10;
+}
+
+#sidebar-inner {
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  /* padding-right: 10px; */
+  overflow-y: hidden;
+  overflow-x: hidden;
+  /* border-radius: 5px; */
+  padding-top: 79px;
+  margin-top: -79px;
+}
+
+/* SCROLL BARS */
+
+/* width */
+#sidebar-inner::-webkit-scrollbar {
+  /* position: relative; */
+  /* left: -5px; */
+  /* margin-left: -5px; */
+  width: 5px;
+  height: 10px;
+  border-radius: 10px;
+}
+
+/* Track */
+#sidebar-inner::-webkit-scrollbar-track {
+  /* background: #0000001c; */
+  border-radius: 10px;
+  /* width: 20px; */
+}
+  
+/* Handle */
+#sidebar-inner::-webkit-scrollbar-thumb {
+  background: #353535;
+  border-radius: 10px;
+}
+
+#sidebar-inner::-webkit-scrollbar-corner {
+  background: #0000001c;
+  border-radius: 10px;
+}
+
+.sidebar-icon {
+  width: 100%;
+  height: auto;
+  border-radius: 50%;
+  border: var(--ring-color) 5px solid;
+  /* margin-bottom: 12px; */
+}
+
+.sidebar-dot-container {
+  width: 0px;
+  height: 0px;
+}
+
+.sidebar-dot {
+  position: relative;
+  top: -25px;
+  left: calc(-20px + (54px));
+  width: 25px;
+  height: 25px;
+  background-color: var(--dot-color);
+  border: 5px solid #252525;
+  border-radius: 50%;
+  /* cursor: pointer; */
+  /* pointer-events: all; */
 }
 
 #left {
@@ -249,6 +617,14 @@ document.body.addEventListener("pointerup", _e => {
 #right {
   width: var(--chat-width);
   height: 100%;
+}
+
+.chat-embed {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 5px;
+  pointer-events: all;
 }
 
 #main {
@@ -317,6 +693,24 @@ document.body.addEventListener("pointerup", _e => {
 #others > * > iframe {
   width: 100%;
   height: 100%;
+}
+
+#add-stream {
+  background-size: 100% 100%;
+  object-fit: cover;
+}
+#add-stream:hover {
+  filter: brightness(1.5);
+  transition: all 0.2s ease-out;
+}
+#add-stream[flashing=true] {
+  animation: flashing 0.5s infinite alternate;
+  transition: none;
+}
+
+@keyframes flashing {
+  0% { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
 }
 
 .widescreen {

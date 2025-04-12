@@ -5,6 +5,7 @@
     <title>MultiLurk</title>
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta http-equiv="Content-Security-Policy" content="script-src * 'unsafe-inline';" />
+    <link rel="icon" href="/icon.png" type="image/png" />
   </head>
 
   <body>
@@ -68,12 +69,12 @@
       }
 
       function setPlayer(channel) {
-        let id = (channel + "-player")
+        // let id = (channel + "-player")
 
-        if (!players[id]) {
+        if (players[channel] == null) {
           createPlayer(channel, main);
         } else {
-          players[channel].setChannel(channel);
+          // players[channel].setChannel(channel);
         }
 
         // let event = new PlayerEvent("set_player", channel);
@@ -81,6 +82,19 @@
       }
 
       window.setPlayer = setPlayer;
+
+      function playerRemoved(channel) {
+        // let id = (channel + "-player")
+        if (players[channel] != null) {
+          // players[id].destroy();
+          delete players[channel];
+        } else {
+          console.log("Player " + channel + " not found");
+        }
+      }
+
+      window.playerRemoved = playerRemoved;
+
     </script>
   </body>
 </html>
