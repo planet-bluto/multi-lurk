@@ -1,3 +1,4 @@
+import 'primeicons/primeicons.css'
 import './assets/style.css'
 
 import "./arrayLib.js"

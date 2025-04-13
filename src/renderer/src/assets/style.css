@@ -1,3 +1,16 @@
+:root {
+  --p-primary-100: #1a043c !important;
+  --p-primary-200: color-mix(in lab, #772ce9 50%, #1a043c 50%) !important;
+  --p-primary-300: color-mix(in lab, #772ce9 90%, #1a043c 10%) !important;
+  --p-primary-400: #772ce9 !important;
+  --p-primary-500: color-mix(in lab, #772ce9 84%, #e3d0ff 16%) !important;
+  --p-primary-600: color-mix(in lab, #772ce9 67%, #e3d0ff 33%) !important;
+  --p-primary-700: color-mix(in lab, #772ce9 50%, #e3d0ff 50%) !important;
+  --p-primary-800: color-mix(in lab, #772ce9 34%, #e3d0ff 66%) !important;
+  --p-primary-900: color-mix(in lab, #772ce9 17%, #e3d0ff 83%) !important;
+  --p-primary-950: #e3d0ff !important;
+}
+
 body {
   width: 100vw;
   height: 100vh;

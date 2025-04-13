@@ -66,28 +66,22 @@ function movetoTransform() {
   let thisRect: any = {}
   let elems = [clickableElem, thisElem]
   its.forEach((it, ind) => {
-    let offset = ind < 2 ? 60 : 0
+    let offset = ind < 2 ? 85 : 0
     if (thisElem.value != null) {
-      let current = center(thisElem.value.getBoundingClientRect())[it.toLowerCase()]
-
-      elems.forEach((elem) => {
-        if (elem.value == null) return
-        
-        thisRect[it.toLowerCase()] = lerp(
-          current,
+      thisRect[it.toLowerCase()] = lerp(
+        center(thisElem.value.getBoundingClientRect())[it.toLowerCase()],
           (center(player_transform.getBoundingClientRect())[it.toLowerCase()] - offset),
-          (ind < 2 ? 0.25 : 0.1)
+          (ind < 2 ? 0.18 : 0.18)
         )
-      })
     }
   })
 
   const offsets = [0, -74, 0, 0]
   elems.forEach((elem) => {
     let actualRect = uncenter(thisRect)
-    Object.keys(actualRect).forEach((it, ind) => {
+    its.forEach((it, ind) => {
       if (elem.value == null) { return }
-      elem.value.style[it] = (actualRect[it] + offsets[ind]) + "px"
+      elem.value.style[it.toLowerCase()] = (actualRect[it.toLowerCase()] + offsets[ind]) + "px"
     })
   })
 
@@ -121,7 +115,8 @@ const hovering = ref(false)
     </div>
     <div v-show="(hovering)" class="dots-container">
       <!-- <div class="dot make-main-dot" @click="makeMain"></div> -->
-      <div class="dot close-dot" @click="closePlayer"></div>
+      <!-- <div class="dot close-dot" @click="closePlayer"></div> -->
+      <i class="pi pi-times dot close-dot" @click="closePlayer" style="font-size: 25px;"></i>
       <!-- <div class="dot reset-dot" @click="resetPlayer"></div> -->
     </div>
   </div>
@@ -151,7 +146,7 @@ const hovering = ref(false)
 .floating-player-clickable:hover {
   background-color: #fff;
   opacity: 0.1;
-  transition: all 0.2s ease-out;
+  transition: opacity 0.2s ease-out;
 }
 
 .floating-player > iframe {
@@ -169,22 +164,22 @@ const hovering = ref(false)
 
 .dot {
   position: relative;
-  top: -15px;
-  right: 15px;
+  top: -8px;
+  right: 8px;
   width: 30px;
   height: 30px;
-  background-color: #252525;
-  border: 5px solid #151515;
-  border-radius: 50%;
+  /* border: 5px solid #151515; */
+  /* border-radius: 50%; */
   cursor: pointer;
   pointer-events: all;
+  color: #353535;
+  font-weight: 900;
+  -webkit-text-stroke-color: #353535;
+  -webkit-text-stroke-width: 0px;
+  /* stroke */
 }
 .dot:hover {
   filter: brightness(1.5);
-  transition: all 0.2s ease-out;
+  transition: filter 0.2s ease-out;
 }
-
-.make-main-dot { background-color: #024aca;}
-.close-dot { background-color: #e03c28;}
-.reset-dot { background-color: #ffbb31;}
 </style>

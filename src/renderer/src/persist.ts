@@ -2,17 +2,25 @@ import { Ref, ref, watchEffect } from 'vue'
 import { Keybinds } from './keybinds'
 // import { useToast } from 'primevue'
 
+function updateDocumentTitle() {
+  document.title = `MultiLurk${currentChannel.value != "" ? ` - ${currentChannel.value}${(currentChannels.value.length-1) > 0 ? ` (+${(currentChannels.value.length-1)})` : ""}` : ""}`
+}
+
 export const currentChannel: Ref<string> = ref(localStorage.getItem('currentChannel') || '')
 export const currentChannels: Ref<string[]> = ref(localStorage.getItem('currentChannels') ? JSON.parse(localStorage.getItem('currentChannels') || '[]') : [])
 watchEffect(() => {
   localStorage.setItem('currentChannel', currentChannel.value)
   localStorage.setItem('currentChannels', JSON.stringify(currentChannels.value))
+  
+  updateDocumentTitle()
 })
 
 export function mainChannel(channel: string): void {
   channel = channel.toLowerCase()
   currentChannel.value = channel
   window.mainPlayer(channel)
+
+  updateDocumentTitle()
 }
 
 // const toast = useToast();
@@ -30,6 +38,8 @@ export function addChannel(channel: string, makeMain: boolean = false): void {
     // window.toast({ severity: 'warn', summary: 'Channel already added', detail: `Channel ${channel} is already in the list`, life: 3000 })
     window.toast({ severity: 'error', summary: "Channel Not Added", detail: 'You can only add one instance of a channel!', group: 'br', life: 3000 })
   }
+
+  updateDocumentTitle()
 }
 export function removeChannel(channel: string): void {
   channel = channel.toLowerCase()
@@ -45,6 +55,8 @@ export function removeChannel(channel: string): void {
       currentChannel.value = currentChannels.value[0] || ''
     }
   }
+
+  updateDocumentTitle()
 }
 
 function nonFollowedCheck() {

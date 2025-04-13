@@ -14,7 +14,8 @@ import { useToast } from 'primevue';
 
 import add_button_image from './assets/add_button.png'
 import side_icon_image from './assets/side_icon.png'
-console.log(add_button_image)
+import side_icon_eye_image from './assets/side_icon_eye.png'
+// console.log(add_button_image)
 
 const toast = useToast()
 
@@ -340,6 +341,44 @@ function initiateLogout() {
 function tokenStored() {
   return localStorage.getItem("access_token") != null
 }
+
+
+var sideIconEye = useTemplateRef('sideIconEye')
+var eyeAng = 0
+var eyeAngTarget = 0
+document.body.addEventListener("mousemove", e => {
+  let elem = sideIconEye.value
+  if (elem != null) {
+    eyeAngTarget = Math.atan2(
+      e.clientX - (elem.offsetTop + (elem.offsetHeight / 2)),
+      e.clientY - (elem.offsetLeft + (elem.offsetWidth / 2))
+    )
+
+  }
+})
+function moveEyeToAngle() {
+  let elem = sideIconEye.value
+  if (elem != null) {
+  eyeAng = lerpAngle(eyeAng, eyeAngTarget, 0.1)
+  elem.style.setProperty("rotate", `-${radToDeg(eyeAng)}deg`)
+  }
+  requestAnimationFrame(moveEyeToAngle)
+}
+moveEyeToAngle()
+
+function radToDeg(radians) {
+  return radians * (180 / Math.PI)
+}
+
+function lerpAngle(start, end, t) {
+  let diff = end - start
+  if (diff > Math.PI) {
+    diff -= Math.PI * 2
+  } else if (diff < -Math.PI) {
+    diff += Math.PI * 2
+  }
+  return start + diff * t
+}
 </script>
 
 <template>
@@ -366,6 +405,7 @@ function tokenStored() {
   </Dialog>
   <div id="sidebar" ref="sidebar">
     <img id="side-icon" :src="side_icon_image" @click="startupPopupVisible = true"></img>
+    <img id="side-icon-eye" :src="side_icon_eye_image" @click="startupPopupVisible = true" ref="sideIconEye"></img>
     <div id="sidebar-inner" ref="sidebarInner">
       <div v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" @click="addChannel(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
         <img class="sidebar-icon" :src="channel.picture" :style="`--ring-color: #${showRing ? (channel.streaming ? 'ff2929' : '353535') : '151515'}`"></img>
@@ -520,6 +560,15 @@ p {
   height: auto;
   /* margin-bottom: 12px; */
   z-index: 10;
+}
+
+#side-icon-eye {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  top: 12px;
+  left: 6px;
+  z-index: 100;
 }
 
 #sidebar-inner {
@@ -701,7 +750,7 @@ p {
 }
 #add-stream:hover {
   filter: brightness(1.5);
-  transition: all 0.2s ease-out;
+  transition: filter 0.2s ease-out;
 }
 #add-stream[flashing=true] {
   animation: flashing 0.5s infinite alternate;

@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+// import iconPng from '../../resources/icon.png?asset'
+import iconIco from '../../resources/icon.ico?asset'
 // import { HelixFollowedChannel } from '@twurple/api'
 import { twitchAPI } from './twitch'
 
@@ -14,13 +15,15 @@ function popupWindow(url): BrowserWindow {
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === 'linux' ? { icon: iconIco } : {}),
     webPreferences: {
       devTools: true,
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     }
   })
+
+  thisWindow.setIcon(iconIco)
 
 
   thisWindow.on('ready-to-show', () => {
@@ -66,13 +69,15 @@ function createWindow(): void {
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === 'linux' ? { icon: iconIco } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       webviewTag: true
     }
   })
+
+  mainWindow.setIcon(iconIco)
 
   mainWindow.on('close', () => {
     if (process.platform !== 'darwin') {
