@@ -62,8 +62,8 @@
             if (channel == main_channel) {
               players[channel].setQuality('auto')
               print( channel + "==> auto")
+              if (lastMainPlayer) { players[channel].setVolume(players[lastMainPlayer].getVolume()) }
               players[channel].setMuted(false)
-              players[channel].setVolume(players[lastMainPlayer].getVolume())
             } else { 
               let theQual = (qualities.length > 0) ? qualities[0].name : "auto"
               players[channel].setQuality(theQual)
@@ -102,6 +102,7 @@
         // let id = (channel + "-player")
         if (players[channel] != null) {
           // players[id].destroy();
+          if (channel == lastMainPlayer) { lastMainPlayer = null }
           delete players[channel];
         } else {
           console.log("Player " + channel + " not found");

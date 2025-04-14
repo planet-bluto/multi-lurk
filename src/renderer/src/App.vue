@@ -6,8 +6,9 @@ import Popover from 'primevue/popover';
 import Toast, { ToastMessageOptions } from 'primevue/toast';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext'
+import Skeleton from 'primevue/skeleton';
 // import mini_player from './components/mini_player.vue'
-import { addChannel, channelCache, currentChannel, currentChannels, followingChannels, replaceChannel } from './persist'
+import { addChannel, channelCache, currentChannel, currentChannels, followingChannels, raidedChannels, replaceChannel } from './persist'
 import Player from './components/Player.vue'
 import { Keybinds } from './keybinds'
 import { useToast } from 'primevue';
@@ -208,10 +209,17 @@ function handleWebFrameLoad(channel) {
       ffz_init();`).then(console.log)
   // if (window.electron) { window.electron.ipcRenderer.send('iframe-loaded', {id: id, url: webView.src}) }
   let url = webView.getURL()
-  let currentChannel = url.split("/")[4]
-  // print("CHANNEL: ", currentChannel)
-  if (currentChannel != channel && url.includes("?referrer=raid")) {
-    replaceChannel(channel, currentChannel)
+  let newChannel = url.split("/")[4]
+  print("OLD CHANNEL: ", channel)
+  print("NEW CHANNEL: ", newChannel)
+  print("URL: ", url)
+  if (newChannel != channel) {
+    replaceChannel(channel, newChannel)
+    raidedChannels.value.push(newChannel)
+    
+    webView.loadURL(url.replace(newChannel, channel))
+
+    window.toast({ severity: 'info', summary: `Raided into ${newChannel}!`, detail: `Replaced channel where '${channel}' due to raid`, group: 'main', life: 5000 })
   }
 }
 
@@ -412,7 +420,6 @@ const sideIconEyeHovering = ref(false)
 </script>
 
 <template>
-  <Toast position="bottom-left" group="bl" />
   <Dialog v-model:visible="popupVisible" header="Add Stream" @show="focusInput">
     <Form @submit="newStreamDialog">
       <InputText id="addStreamInput" v-model="addStreamChannel" type="text" />
@@ -437,15 +444,19 @@ const sideIconEyeHovering = ref(false)
     <img id="side-icon" :src="side_icon_image" @click="startupPopupVisible = true"></img>
     <img id="side-icon-eye" :src="sideIconEyeHovering ? side_icon_eye_up_image : side_icon_eye_down_image" @click="startupPopupVisible = true" ref="sideIconEye" @mouseenter="sideIconEyeHovering = true" @mouseleave="sideIconEyeHovering = false"></img>
     <div id="sidebar-inner" ref="sidebarInner">
-      <div v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" @click="addChannel(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
+      <div v-show="followingChannels.length > 0" v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" @click="addChannel(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
         <img class="sidebar-icon" :src="channel.picture" :style="`--ring-color: #${showRing ? (channel.streaming ? 'ff2929' : '353535') : '151515'}`"></img>
         <div class="sidebar-dot-container">
           <div class="sidebar-dot" :style="`--dot-color: #${(channel.streaming ? 'ff2929' : '353535')}`" v-show="!showRing"></div>
         </div>
       </div>
+      <div v-show="followingChannels.length == 0" v-for="_slot in new Array(50)">
+        <Skeleton class="sidebar-placeholder" width="64px" height="64px" shape="circle"></Skeleton>
+      </div>
     </div>
   </div>
   <div id="whole" :style="`--chat-width: ${chatWidth}px; --others-height: ${othersHeight}px`">
+    <Toast position="top-right" group="main" />
     <div id="left" ref="leftSide">
       <div id="player-container" ref="playerContainer">
         <Player
@@ -455,7 +466,9 @@ const sideIconEyeHovering = ref(false)
       </div>
       <div id="main" ref="mainContainer">
         <!-- <iframe src="https://player.twitch.tv/?channel=gabarcode&parent=planet-bluto.net" frameborder="0" allowfullscreen="true" scrolling="no" height="378" width="620"></iframe> -->
-        <div id="main-transform" :class="currentChannel" ref="mainPlayer"></div>
+        <div id="main-transform" :class="currentChannel" ref="mainPlayer">
+          <Skeleton size="100%" v-show="currentChannel == ''"></Skeleton>
+        </div>
       </div>
       <!-- <div id="others-handle" @pointerdown="startOthersHandleDrag"></div> -->
       <div
@@ -485,7 +498,7 @@ const sideIconEyeHovering = ref(false)
           class="chat-embed"
           :id="`${channel}_webview_chat_embed`"
           :style="`pointer-events: ${draggingChatHandle ? 'none' : 'all'}`"
-          :src="`https://www.twitch.tv/popout/${channel}/chat`"
+          :src="`https://www.twitch.tv/popout/${channel}/chat${raidedChannels.includes(channel) ? '?referrer=raid' : ''}`"
           @did-finish-load="handleWebFrameLoad(channel)"
           allowpopups
           disablewebsecurity
@@ -604,6 +617,8 @@ p {
 }
 
 #sidebar-inner {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   padding: 5px;
@@ -651,6 +666,15 @@ p {
   border-radius: 50%;
   border: var(--ring-color) 5px solid;
   /* margin-bottom: 12px; */
+}
+
+.sidebar-placeholder {
+  /* width: 100%; */
+  /* height: auto; */
+  /* aspect-ratio: 1/1; */
+  margin-bottom: 8px;
+  border-radius: 50%;
+  border: var(--ring-color) 5px solid;
 }
 
 .sidebar-dot-container {

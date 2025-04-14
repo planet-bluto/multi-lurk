@@ -8,9 +8,14 @@ function updateDocumentTitle() {
 
 export const currentChannel: Ref<string> = ref(localStorage.getItem('currentChannel') || '')
 export const currentChannels: Ref<string[]> = ref(localStorage.getItem('currentChannels') ? JSON.parse(localStorage.getItem('currentChannels') || '[]') : [])
+export const raidedChannels: Ref<string[]> = ref([])
 watchEffect(() => {
   localStorage.setItem('currentChannel', currentChannel.value)
   localStorage.setItem('currentChannels', JSON.stringify(currentChannels.value))
+  
+  if (!currentChannels.value.every((c, i) => (currentChannels.value.indexOf(c) == i))) {
+    currentChannels.value = [...new Set(currentChannels.value)]
+  }
   
   updateDocumentTitle()
 })
@@ -36,7 +41,7 @@ export function addChannel(channel: string, makeMain: boolean = false): void {
     nonFollowedCheck()
   } else {
     // window.toast({ severity: 'warn', summary: 'Channel already added', detail: `Channel ${channel} is already in the list`, life: 3000 })
-    window.toast({ severity: 'error', summary: "Channel Not Added", detail: 'You can only add one instance of a channel!', group: 'br', life: 3000 })
+    window.toast({ severity: 'error', summary: "Channel Not Added", detail: 'You can only add one instance of a channel!', group: 'main', life: 3000 })
   }
 
   updateDocumentTitle()
@@ -52,19 +57,42 @@ export function removeChannel(channel: string): void {
     window.playerRemoved(channel)
 
     if (currentChannel.value === channel) {
-      currentChannel.value = currentChannels.value[0] || ''
+      if (currentChannels.value[0] != null) {
+        mainChannel(currentChannels.value[0])
+      } else {
+        currentChannel.value = ""
+      }
     }
   }
 
   updateDocumentTitle()
 }
 
-export function replaceChannel(oldChannel: string, newChannel: string) {
-  currentChannels.value = currentChannels.value.join(",").replace(oldChannel, newChannel).split(",")
-
-  if (currentChannel.value == oldChannel) {
-    currentChannel.value = newChannel
+Keybinds.bind("ctrl+shift+w", (_e) => {
+  let amount = currentChannels.value.length
+  for (let index = 0; index < amount; index++) {
+    const channel = currentChannels.value[0];
+    removeChannel(channel) 
   }
+})
+
+export function replaceChannel(oldChannel: string, newChannel: string) {
+  print("CHANNELS: ", currentChannels.value)
+  if (currentChannels.value.includes(newChannel)) {
+    if (currentChannel.value == oldChannel) {
+      mainChannel(newChannel)
+    }
+  } else {
+    currentChannels.value = currentChannels.value.join(",").replace(oldChannel, newChannel).split(",")
+    window.playerRemoved(oldChannel)
+    channelCache.value = channelCache.value.filter(c => c.name != oldChannel)
+  }
+  
+  if (currentChannel.value == oldChannel) {
+    mainChannel(newChannel)
+  }
+
+  updateDocumentTitle()
 }
 
 function nonFollowedCheck() {
