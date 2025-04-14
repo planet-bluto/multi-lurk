@@ -1,10 +1,10 @@
 {
   "name": "multi-lurk",
   "version": "1.0.0",
-  "description": "An Electron application with Vue and TypeScript",
+  "description": "A custom Twitch client that makes watching and switching between multiple streams at once easy",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "planet-bluto.net",
+  "homepage": "https://multilurk.planet-bluto.net/",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

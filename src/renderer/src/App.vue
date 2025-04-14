@@ -85,7 +85,7 @@ function player_resize(): void {
   }
 }
 
-Keybinds.bind("ctrl+t", (_event: KeyboardEvent) => {
+Keybinds.bind("alt+t", (_event: KeyboardEvent) => {
   popupVisible.value = true
 })
 
@@ -375,6 +375,14 @@ function tokenStored() {
   return (localStorage.getItem("access_token") != null)
 }
 
+function onWebVersion() {
+  return (window.electron == null)
+}
+
+function gotoDownload() {
+  window.open("https://github.com/planet-bluto/multi-lurk/releases", "_blank")
+}
+
 
 var sideIconEye = useTemplateRef('sideIconEye')
 var eyeAng = 0
@@ -438,6 +446,7 @@ const sideIconEyeHovering = ref(false)
     <div style="display: flex; gap: 15px">
       <Button label="Login With Twitch!" severity="info" @click="initiateLogin"></Button>
       <Button label="Logout" severity="danger" v-show="tokenStored()" @click="initiateLogout"></Button>
+      <Button label="Download on Windows!" severity="success" v-show="onWebVersion()" @click="gotoDownload"></Button>
     </div>
   </Dialog>
   <div id="sidebar" ref="sidebar">

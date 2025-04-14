@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: multi-lurk
+appId: net.planetbluto.multilurk
+productName: MultiLurk
 directories:
   buildResources: build
 files:
@@ -12,12 +12,14 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: multi-lurk
+  executableName: MultiLurk
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
-  createDesktopShortcut: always
+  createDesktopShortcut: false
+  allowToChangeInstallationDirectory: true
+  oneClick: false
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -33,11 +35,11 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: planet-bluto.net
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
   provider: generic
-  url: https://example.com/auto-updates
+  url: https://github.com/planet-bluto/multi-lurk
