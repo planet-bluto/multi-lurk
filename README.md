@@ -8,13 +8,12 @@ A custom Twitch client that makes watching and switching between multiple stream
 
 ![](showcase/multilurk_1.0.0_showcase.gif)
 
-
-
-
-## How To Use
+## How To Use & Features
 - You just have to Log-In with Twitch on the prompt and then it'll allow you to load your following list on the sidebar
 - Clicking the plus button on the bottom adds streams to the stream list
 - Clicking on mini streams will enlarge them and make them the main stream and load their chat on the right side
+- FrankerFaceZ Support Built-In!
+
 ### Keybinds
 - **F11:** Fullscreen
 - **ALT + =:** Zoom Page In
