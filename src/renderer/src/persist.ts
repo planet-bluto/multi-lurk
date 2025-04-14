@@ -59,6 +59,14 @@ export function removeChannel(channel: string): void {
   updateDocumentTitle()
 }
 
+export function replaceChannel(oldChannel: string, newChannel: string) {
+  currentChannels.value = currentChannels.value.join(",").replace(oldChannel, newChannel).split(",")
+
+  if (currentChannel.value == oldChannel) {
+    currentChannel.value = newChannel
+  }
+}
+
 function nonFollowedCheck() {
   currentChannels.value.forEach(channelName => {
     let foundChannel = followingChannels.value.find(c => c.name == channelName)
@@ -72,20 +80,28 @@ function nonFollowedCheck() {
   })
 }
 
-export const zoomLevel: Ref<number> = ref(parseInt(localStorage.getItem('zoomLevel') || '0.8'))
-watchEffect(() => {
+export const zoomLevel: Ref<number> = ref(Number(localStorage.getItem('zoomLevel') || '0.8'))
+const updateZoom = (() => {
+  zoomLevel.value = clamp(zoomLevel.value, 0.25, 5.0)
+  print("Zoom Level: ", zoomLevel.value) 
   if (window.electron != null) { window.electron.webFrame.setZoomFactor(zoomLevel.value) }
   localStorage.setItem('zoomLevel', zoomLevel.value.toString())
 })
 
+updateZoom()
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 Keybinds.bind("alt+=", (_event: KeyboardEvent) => {
-  zoomLevel.value += 0.05
-  print("Zoom Level: ", zoomLevel.value)
+  zoomLevel.value += 0.02
+  updateZoom()
 })
 
 Keybinds.bind("alt+-", (_event: KeyboardEvent) => {
-  zoomLevel.value -= 0.05
-  print("Zoom Level: ", zoomLevel.value) 
+  zoomLevel.value -= 0.02
+  updateZoom()
 })
 
 export const followingChannels: Ref<any[]> = ref([])

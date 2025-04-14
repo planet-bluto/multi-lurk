@@ -26,11 +26,24 @@
         ready_players[channel] = false
         players[channel].addEventListener(Twitch.Player.READY, function() {
           ready_players[channel] = true
+          if (lastMainPlayer != channel) {
+            let qualities = players[channel].getQualities()
+            qualities = qualities.filter(q => q.name != "auto")
+            qualities.sort((a, b) => {
+              return a.height < b.height ? -1 : 1
+            })
+
+            let theQual = (qualities.length > 0) ? qualities[0].name : "auto"
+            players[channel].setQuality(theQual)
+            print( channel + "==>" + theQual)
+            players[channel].setMuted(true)
+          }
         })
       }
 
       window.createPlayer = createPlayer;
-
+      
+      var lastMainPlayer = null
       function mainPlayer(main_channel) {
         Object.keys(players).forEach(channel => {
           if (ready_players[channel] == false) {
@@ -50,8 +63,8 @@
               players[channel].setQuality('auto')
               print( channel + "==> auto")
               players[channel].setMuted(false)
-              players[channel].setVolume(100)
-            } else {
+              players[channel].setVolume(players[lastMainPlayer].getVolume())
+            } else { 
               let theQual = (qualities.length > 0) ? qualities[0].name : "auto"
               players[channel].setQuality(theQual)
               print( channel + "==>" + theQual)
@@ -59,6 +72,8 @@
             }
           }
         })
+
+        lastMainPlayer = main_channel
       }
 
       class PlayerEvent extends Event {

@@ -7,14 +7,15 @@ import Toast, { ToastMessageOptions } from 'primevue/toast';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext'
 // import mini_player from './components/mini_player.vue'
-import { addChannel, channelCache, currentChannel, currentChannels, followingChannels } from './persist'
+import { addChannel, channelCache, currentChannel, currentChannels, followingChannels, replaceChannel } from './persist'
 import Player from './components/Player.vue'
 import { Keybinds } from './keybinds'
 import { useToast } from 'primevue';
 
 import add_button_image from './assets/add_button.png'
 import side_icon_image from './assets/side_icon.png'
-import side_icon_eye_image from './assets/side_icon_eye.png'
+import side_icon_eye_up_image from './assets/eye_up.gif'
+import side_icon_eye_down_image from './assets/eye_down.gif'
 // console.log(add_button_image)
 
 const toast = useToast()
@@ -166,9 +167,13 @@ document.body.addEventListener("pointerup", _e => {
   document.body.style.cursor = ''
 })
 
-function handleIframeLoad(id) {
+function handleWebFrameLoad(channel) {
+  let id = `${channel}_webview_chat_embed`
+  // print("ID: ", id)
   // let iframe: HTMLIFrameElement = (e.target as HTMLIFrameElement)
   let webView: any = document.getElementById(id)
+  // print(webView)
+  // webView.openDevTools()
   webView.executeJavaScript(`function ffz_init()
       {
         var script = document.createElement('script');
@@ -200,8 +205,14 @@ function handleIframeLoad(id) {
         document.head.appendChild(script);
       }
       
-      ffz_init();`)
+      ffz_init();`).then(console.log)
   // if (window.electron) { window.electron.ipcRenderer.send('iframe-loaded', {id: id, url: webView.src}) }
+  let url = webView.getURL()
+  let currentChannel = url.split("/")[4]
+  // print("CHANNEL: ", currentChannel)
+  if (currentChannel != channel && url.includes("?referrer=raid")) {
+    replaceChannel(channel, currentChannel)
+  }
 }
 
 function showWebView(channel) {
@@ -303,6 +314,7 @@ onMounted(() => {
 
 const sidebarInner = useTemplateRef('sidebarInner')
 var scrollValue = 0
+var diff = 0
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -310,19 +322,32 @@ function clamp(value, min, max) {
 
 onMounted(() => {
   sidebarInner.value?.addEventListener('wheel', (_e: WheelEvent) => {
-    print(_e.deltaY)
+    // print("DeltaY: ", _e.deltaY)
     scrollValue += (_e.deltaY)
 
-    scrollValue = clamp(scrollValue, 0, sidebarInner.value?.scrollHeight)
+    scrollValue = Math.round(clamp(scrollValue, 0, sidebarInner.value?.scrollHeight))
+    // print("scrollValue: ", scrollValue)
   })
 })
 function lerpToScroll() {
   if (sidebarInner.value) {
-    sidebarInner.value.scrollTop = lerp(sidebarInner.value.scrollTop, scrollValue, 0.2)
+    diff = Math.abs(scrollValue - (sidebarInner.value.scrollTop || 0))
+    // print("DIFF: ", diff)
+    if (diff > 5) {
+      sidebarInner.value.scrollTop = lerp(sidebarInner.value.scrollTop, scrollValue, 0.2)
+      try { streamCard.value?.alignOverlay() } catch(err) {
+        // console.log("shut up")
+        // no seriously though shut up bruh
+      }
+    } else if (sidebarInner.value.scrollTop != scrollValue) {
+      // print("\n\n\nRESET\n\n\n")
+      sidebarInner.value.scrollTop = scrollValue
+      // print("Bro: ", scrollValue, sidebarInner.value.scrollTop)
+    }
   }
   requestAnimationFrame(lerpToScroll)
 }
-lerpToScroll()
+onMounted(lerpToScroll)
 
 window.toast = (arg: ToastMessageOptions) => {
   print("erm: ", arg)
@@ -339,14 +364,14 @@ function initiateLogout() {
 }
 
 function tokenStored() {
-  return localStorage.getItem("access_token") != null
+  return (localStorage.getItem("access_token") != null)
 }
 
 
 var sideIconEye = useTemplateRef('sideIconEye')
 var eyeAng = 0
 var eyeAngTarget = 0
-document.body.addEventListener("mousemove", e => {
+const eyeTrackMove = e => {
   let elem = sideIconEye.value
   if (elem != null) {
     eyeAngTarget = Math.atan2(
@@ -354,13 +379,19 @@ document.body.addEventListener("mousemove", e => {
       e.clientY - (elem.offsetLeft + (elem.offsetWidth / 2))
     )
 
+    // eyeAngTarget = clamp(eyeAngTarget, 0, 2 * Math.PI)
   }
-})
+}
+
+document.body.addEventListener("mousemove", eyeTrackMove)
+provide("eyeTrackMove", eyeTrackMove)
+
 function moveEyeToAngle() {
   let elem = sideIconEye.value
   if (elem != null) {
-  eyeAng = lerpAngle(eyeAng, eyeAngTarget, 0.1)
-  elem.style.setProperty("rotate", `-${radToDeg(eyeAng)}deg`)
+    eyeAng = lerpAngle(eyeAng, eyeAngTarget, (sideIconEyeHovering.value ? 1.0 : 0.1))
+    elem.style.setProperty("rotate", `${radToDeg(eyeAng) * -1}deg`)
+    // print(eyeAng)
   }
   requestAnimationFrame(moveEyeToAngle)
 }
@@ -370,15 +401,14 @@ function radToDeg(radians) {
   return radians * (180 / Math.PI)
 }
 
-function lerpAngle(start, end, t) {
-  let diff = end - start
-  if (diff > Math.PI) {
-    diff -= Math.PI * 2
-  } else if (diff < -Math.PI) {
-    diff += Math.PI * 2
-  }
-  return start + diff * t
+function lerpAngle(A, B, w) {
+  let CS = (1-w)*Math.cos(A) + w*Math.cos(B);
+    let SN = (1-w)*Math.sin(A) + w*Math.sin(B);
+    return Math.atan2(SN,CS);
 }
+
+const sideIconEyeHovering = ref(false)
+
 </script>
 
 <template>
@@ -400,12 +430,12 @@ function lerpAngle(start, end, t) {
     <p style="font-size: 18px; margin-bottom: 15px;">Welcome to <span style="color: #782ce9; font-weight: bold;">MultiLurk</span>! A Twitch client for watching, switching between, and keeping up with multiple streams at once!</p>
     <div style="display: flex; gap: 15px">
       <Button label="Login With Twitch!" severity="info" @click="initiateLogin"></Button>
-      <Button label="Logout" severity="danger" v-show="tokenStored" @click="initiateLogout"></Button>
+      <Button label="Logout" severity="danger" v-show="tokenStored()" @click="initiateLogout"></Button>
     </div>
   </Dialog>
   <div id="sidebar" ref="sidebar">
     <img id="side-icon" :src="side_icon_image" @click="startupPopupVisible = true"></img>
-    <img id="side-icon-eye" :src="side_icon_eye_image" @click="startupPopupVisible = true" ref="sideIconEye"></img>
+    <img id="side-icon-eye" :src="sideIconEyeHovering ? side_icon_eye_up_image : side_icon_eye_down_image" @click="startupPopupVisible = true" ref="sideIconEye" @mouseenter="sideIconEyeHovering = true" @mouseleave="sideIconEyeHovering = false"></img>
     <div id="sidebar-inner" ref="sidebarInner">
       <div v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" @click="addChannel(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
         <img class="sidebar-icon" :src="channel.picture" :style="`--ring-color: #${showRing ? (channel.streaming ? 'ff2929' : '353535') : '151515'}`"></img>
@@ -453,11 +483,13 @@ function lerpAngle(start, end, t) {
           v-for="channel in currentChannels"
           v-show="showWebView(channel)"
           class="chat-embed"
-          :id="`${channel}_chat_embed`"
+          :id="`${channel}_webview_chat_embed`"
           :style="`pointer-events: ${draggingChatHandle ? 'none' : 'all'}`"
           :src="`https://www.twitch.tv/popout/${channel}/chat`"
-          @did-finish-load="handleIframeLoad(`${channel}_chat_embed`)"
+          @did-finish-load="handleWebFrameLoad(channel)"
           allowpopups
+          disablewebsecurity
+          webpreferences="allowRunningInsecureContent"
         >
         </webview>
         <iframe
@@ -467,7 +499,7 @@ function lerpAngle(start, end, t) {
           :id="`${channel}_chat_embed`"
           :style="`pointer-events: ${draggingChatHandle ? 'none' : 'all'}`"
           :src="`https://www.twitch.tv/embed/${channel}/chat?parent=${getHost()}&darkpopout`"
-          @did-finish-load="handleIframeLoad(`${channel}_chat_embed`)"
+          @did-finish-load="handleWebFrameLoad(channel)"
           allowpopups
         >
         </iframe>

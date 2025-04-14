@@ -98,6 +98,7 @@ function updateStyle() {
     thisElem.value.style.setProperty("--pointings", res)
   }
 }
+onMounted(updateStyle)
 watch(currentChannel, updateStyle)
 watch(draggingChatHandle, updateStyle)
 // onUpdated(movetoTransform)
@@ -106,6 +107,17 @@ const showStreamCard = inject("showStreamCard", (_e: MouseEvent, _c: any) => {})
 const hideStreamCard = inject("hideStreamCard", (_e: MouseEvent) => {})
 
 const hovering = ref(false)
+
+const eyeTrackMove = inject("eyeTrackMove", (_e: MouseEvent) => {})
+onMounted(() => {
+  let elem = thisElem.value
+  if (elem != null && currentChannel.value == props.channel) {
+    Array.from(elem.children).forEach(child => {
+      (child as HTMLElement).addEventListener("mousemove", eyeTrackMove)
+      print("TRACKING", child)
+    })
+  }
+})
 </script>
 
 <template>

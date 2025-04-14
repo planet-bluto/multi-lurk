@@ -19,7 +19,8 @@ function popupWindow(url): BrowserWindow {
     webPreferences: {
       devTools: true,
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      zoomFactor: 1.0
     }
   })
 
