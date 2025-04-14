@@ -68,7 +68,7 @@ export function removeChannel(channel: string): void {
   updateDocumentTitle()
 }
 
-Keybinds.bind("ctrl+shift+w", (_e) => {
+Keybinds.bind("alt+shift+w", (_e) => {
   let amount = currentChannels.value.length
   for (let index = 0; index < amount; index++) {
     const channel = currentChannels.value[0];
