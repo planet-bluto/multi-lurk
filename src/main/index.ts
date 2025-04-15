@@ -87,23 +87,6 @@ function createWindow(): void {
   })
 
   function buildMenu(followingChannels: any[] = []): void {
-    // let followingChannelsTemplate = followingChannels.map(channel => {
-    //   return {
-    //     label: channel.label,
-    //     click: () => {
-    //       mainWindow.webContents.send("add_channel", channel)
-    //     }
-    //   }
-    // })
-
-    // const template = [
-    //   {label: 'Login', click: loginWindow},
-    //   {label: 'Following', submenu: followingChannelsTemplate},
-    // ]
-  
-    // const menu = Menu.buildFromTemplate(template)
-    // Menu.setApplicationMenu(menu)
-    
     mainWindow.webContents.send("following_channels", followingChannels)
   }
 
@@ -140,104 +123,12 @@ function createWindow(): void {
     }
   })
 
-//   mainWindow.webContents.on('did-finish-load', async () => {
-//     await mainWindow.webContents.executeJavaScript(`function ffz_init()
-// {
-// 	var script = document.createElement('script');
-
-// 	script.id = 'ffz_script';
-// 	script.type = 'text/javascript';
-// 	script.src = '//cdn2.frankerfacez.com/script/script.min.js?_=' + Date.now();
-
-// 	if ( localStorage.ffzDebugMode == "true" ) {
-// 		// Developer Mode is enabled. But is the server running? Check before
-// 		// we include the script, otherwise someone could break their
-// 		// experience and not be able to recover.
-// 		var xhr = new XMLHttpRequest();
-// 		xhr.open("GET", "//localhost:8000/dev_server", true);
-// 		xhr.onload = function(e) {
-// 			var resp = JSON.parse(xhr.responseText);
-// 			console.log("FFZ: Development Server is present. Version " + resp.version + " running from: " + resp.path);
-// 			script.src = "//localhost:8000/script/script.js?_=" + Date.now();
-// 			document.body.classList.add("ffz-dev");
-// 			document.head.appendChild(script);
-// 		};
-// 		xhr.onerror = function(e) {
-// 			console.log("FFZ: Development Server is not present. Using CDN.");
-// 			document.head.appendChild(script);
-// 		};
-// 		return xhr.send(null);
-// 	}
-
-// 	document.head.appendChild(script);
-// }
-
-// ffz_init();`)
-//     console.log("FFZ Script Loaded")
-    
-//   })
-
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    // console.log(details.url)
-    // let window = popupWindow(details.url)
     popupWindow(details.url)
-    // if (details.url.includes("/popout/frankerfacez/chat?ffz-settings")) {
-    //   window.webContents.on("did-finish-load", async () => {
-        
-    //     await window.webContents.executeJavaScript(`
-    //       let oldSetItem = window.Storage.prototype.setItem
-    //       window.Storage.prototype.setItem = function(key, value) {
-    //         console.log("interesting... ", key, value)
-    //         if (key.includes("FFZ:setting")) {
-    //           window.electron.ipcRenderer.send("ffz-settings", key, value)
-    //         }
-
-    //         oldSetItem.apply(this, arguments);
-    //       }
-          
-    //       function ffz_init() {
-    //         var script = document.createElement('script');
-          
-    //         script.id = 'ffz_script';
-    //         script.type = 'text/javascript';
-    //         script.src = '//cdn2.frankerfacez.com/script/script.min.js?_=' + Date.now();
-          
-    //         if ( localStorage.ffzDebugMode == "true" ) {
-    //           // Developer Mode is enabled. But is the server running? Check before
-    //           // we include the script, otherwise someone could break their
-    //           // experience and not be able to recover.
-    //           var xhr = new XMLHttpRequest();
-    //           xhr.open("GET", "//localhost:8000/dev_server", true);
-    //           xhr.onload = function(e) {
-    //             var resp = JSON.parse(xhr.responseText);
-    //             console.log("FFZ: Development Server is present. Version " + resp.version + " running from: " + resp.path);
-    //             script.src = "//localhost:8000/script/script.js?_=" + Date.now();
-    //             document.body.classList.add("ffz-dev");
-    //             document.head.appendChild(script);
-    //           };
-    //           xhr.onerror = function(e) {
-    //             console.log("FFZ: Development Server is not present. Using CDN.");
-    //             document.head.appendChild(script);
-    //           };
-    //           return xhr.send(null);
-    //         }
-          
-    //         document.head.appendChild(script);
-    //       }
-          
-    //       ffz_init();
-    //     `)
-    //     console.log("FFZ Script Loaded: SETTINGS POPUP!")
-    //   })
-
-    //   // window.webContents.on("cl")
-    // }
-    
-    // shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
@@ -270,59 +161,6 @@ app.whenReady().then(() => {
   ipcMain.on('login', () => loginWindow())
 
   ipcMain.handle('get-channel', (_e, c) => getChannel(c))
-
-  // ipcMain.on('iframe-loaded', async (_event, iframeObj) => {
-  //   console.log(mainWindow.webContents.mainFrame.frames)
-  //   let res = mainWindow.webContents.mainFrame.frames.find(f => f.url == iframeObj.url)
-
-  //   if (res == null) { return }
-
-  //   let frame = res as WebFrameMain
-  //   await frame.executeJavaScript(`function ffz_init()
-  //     {
-  //       var script = document.createElement('script');
-      
-  //       script.id = 'ffz_script';
-  //       script.type = 'text/javascript';
-  //       script.src = '//cdn2.frankerfacez.com/script/script.min.js?_=' + Date.now();
-      
-  //       if ( localStorage.ffzDebugMode == "true" ) {
-  //         // Developer Mode is enabled. But is the server running? Check before
-  //         // we include the script, otherwise someone could break their
-  //         // experience and not be able to recover.
-  //         var xhr = new XMLHttpRequest();
-  //         xhr.open("GET", "//localhost:8000/dev_server", true);
-  //         xhr.onload = function(e) {
-  //           var resp = JSON.parse(xhr.responseText);
-  //           console.log("FFZ: Development Server is present. Version " + resp.version + " running from: " + resp.path);
-  //           script.src = "//localhost:8000/script/script.js?_=" + Date.now();
-  //           document.body.classList.add("ffz-dev");
-  //           document.head.appendChild(script);
-  //         };
-  //         xhr.onerror = function(e) {
-  //           console.log("FFZ: Development Server is not present. Using CDN.");
-  //           document.head.appendChild(script);
-  //         };
-  //         return xhr.send(null);
-  //       }
-      
-  //       document.head.appendChild(script);
-  //     }
-      
-  //     ffz_init();`)
-    
-  //    console.log("FFZ Script Loaded: ", iframeObj.id)
-  // })
-
-  // ipcMain.on('ffz-settings', async (_event, key, value) => {
-  //   console.log("Forwarding FFZ Settings: ", key, value)
-  //   mainWindow.webContents.executeJavaScript(`localStorage.setItem(\`${key}\`, \`${value}\`)`)
-  //   // let mainWindow.mainFrame.frames.find(f => f.url.includes("player.twitch.tv"))
-  // })
-
-  // ipcMain.on('prompt', (_promptText) => {
-  //   dialog.
-  // })
 
   createWindow()
 
