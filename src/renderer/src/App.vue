@@ -453,7 +453,7 @@ const sideIconEyeHovering = ref(false)
     <img id="side-icon" :src="side_icon_image" @click="startupPopupVisible = true"></img>
     <img id="side-icon-eye" :src="sideIconEyeHovering ? side_icon_eye_up_image : side_icon_eye_down_image" @click="startupPopupVisible = true" ref="sideIconEye" @mouseenter="sideIconEyeHovering = true" @mouseleave="sideIconEyeHovering = false"></img>
     <div id="sidebar-inner" ref="sidebarInner">
-      <div v-show="followingChannels.length > 0" v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" @click="addChannel(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
+      <div v-show="followingChannels.length > 0" v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" :key="channel" @click="addChannel(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
         <img class="sidebar-icon" :src="channel.picture" :style="`--ring-color: #${showRing ? (channel.streaming ? 'ff2929' : '353535') : '151515'}`"></img>
         <div class="sidebar-dot-container">
           <div class="sidebar-dot" :style="`--dot-color: #${(channel.streaming ? 'ff2929' : '353535')}`" v-show="!showRing"></div>
@@ -488,7 +488,8 @@ const sideIconEyeHovering = ref(false)
         <img id="add-stream" :flashing="currentChannels.length == 0" class="widescreen" @click="popupVisible = true" :src="add_button_image"></img>
         <div v-for="channel in currentChannels.filter((c: String) => c !== currentChannel)"
           :class="`widescreen ${channel}`"
-          :id="`${channel}-transform`" >
+          :id="`${channel}-transform`"
+          :key="channel" >
           <!-- <p>{{ channel }}</p> -->
           <!-- <div class="dots-container">
             <div class="dot make-main-dot" @click="makeMain"></div>
@@ -506,6 +507,7 @@ const sideIconEyeHovering = ref(false)
           v-show="showWebView(channel)"
           class="chat-embed"
           :id="`${channel}_webview_chat_embed`"
+          :key="channel"
           :style="`pointer-events: ${draggingChatHandle ? 'none' : 'all'}`"
           :src="`https://www.twitch.tv/popout/${channel}/chat${raidedChannels.includes(channel) ? '?referrer=raid' : ''}`"
           @did-finish-load="handleWebFrameLoad(channel)"
@@ -519,6 +521,7 @@ const sideIconEyeHovering = ref(false)
           v-show="showIframe(channel)"
           class="chat-embed"
           :id="`${channel}_chat_embed`"
+          :key="channel"
           :style="`pointer-events: ${draggingChatHandle ? 'none' : 'all'}`"
           :src="`https://www.twitch.tv/embed/${channel}/chat?parent=${getHost()}&darkpopout`"
           @did-finish-load="handleWebFrameLoad(channel)"
