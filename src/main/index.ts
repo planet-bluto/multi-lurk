@@ -110,7 +110,7 @@ function createWindow(): void {
   buildMenu()
 
   mainWindow.webContents.on('did-finish-load', async () => {
-    mainWindow.webContents.openDevTools()
+    // mainWindow.webContents.openDevTools()
 
     let token = await mainWindow.webContents.executeJavaScript(`localStorage.getItem("access_token")`)
     let apiClient = await twitchAPI(token, buildMenu)
