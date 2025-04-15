@@ -1,6 +1,6 @@
 # <img src="https://github.com/user-attachments/assets/ffbf3732-487a-4a3e-91da-3f621f4b9e42" width="64" height="64"> MultiLurk
 
-A custom Twitch client that makes watching and switching between multiple streams at once easy
+A custom Twitch client that makes watching multiple streams at once and switching between them easy
 
 📥 **Downloads/Releases can be found [here](https://github.com/planet-bluto/multi-lurk/releases) (Recommended)**
 

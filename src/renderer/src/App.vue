@@ -425,6 +425,11 @@ function lerpAngle(A, B, w) {
 
 const sideIconEyeHovering = ref(false)
 
+function clickChannelSidebar(channel) {
+  addChannel(channel)
+  // mainChannel(channel)
+}
+
 </script>
 
 <template>
@@ -442,7 +447,7 @@ const sideIconEyeHovering = ref(false)
     </div>
   </Popover>
   <Dialog v-model:visible="startupPopupVisible" header="MultiLurk!">
-    <p style="font-size: 18px; margin-bottom: 15px;">Welcome to <span style="color: #782ce9; font-weight: bold;">MultiLurk</span>! A Twitch client for watching, switching between, and keeping up with multiple streams at once!</p>
+    <p style="font-size: 18px; margin-bottom: 15px;">Welcome to <span style="color: #782ce9; font-weight: bold;">MultiLurk</span>! A custom Twitch client that makes watching multiple streams at once and switching between them easy!</p>
     <div style="display: flex; gap: 15px">
       <Button label="Login With Twitch!" severity="info" @click="initiateLogin"></Button>
       <Button label="Logout" severity="danger" v-show="tokenStored()" @click="initiateLogout"></Button>
@@ -453,7 +458,7 @@ const sideIconEyeHovering = ref(false)
     <img id="side-icon" :src="side_icon_image" @click="startupPopupVisible = true"></img>
     <img id="side-icon-eye" :src="sideIconEyeHovering ? side_icon_eye_up_image : side_icon_eye_down_image" @click="startupPopupVisible = true" ref="sideIconEye" @mouseenter="sideIconEyeHovering = true" @mouseleave="sideIconEyeHovering = false"></img>
     <div id="sidebar-inner" ref="sidebarInner">
-      <div v-show="followingChannels.length > 0" v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" :key="channel" @click="addChannel(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
+      <div v-show="followingChannels.length > 0" v-for="channel in followingChannels.toSorted((a, b) => { return ((Date.now() - a.startTime) - (Date.now() - b.startTime)) })" :key="channel" @click="clickChannelSidebar(channel.name)" @mouseover="event => showStreamCard(event, channel)" @mouseleave="hideStreamCard">
         <img class="sidebar-icon" :src="channel.picture" :style="`--ring-color: #${showRing ? (channel.streaming ? 'ff2929' : '353535') : '151515'}`"></img>
         <div class="sidebar-dot-container">
           <div class="sidebar-dot" :style="`--dot-color: #${(channel.streaming ? 'ff2929' : '353535')}`" v-show="!showRing"></div>

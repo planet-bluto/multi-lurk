@@ -29,7 +29,7 @@ export function mainChannel(channel: string): void {
 }
 
 // const toast = useToast();
-export function addChannel(channel: string, makeMain: boolean = false): void {
+export function addChannel(channel: string, makeMain: boolean = true): void {
   channel = channel.toLowerCase()
   if (!currentChannels.value.includes(channel)) {
     currentChannels.value.push(channel)
@@ -41,7 +41,9 @@ export function addChannel(channel: string, makeMain: boolean = false): void {
     nonFollowedCheck()
   } else {
     // window.toast({ severity: 'warn', summary: 'Channel already added', detail: `Channel ${channel} is already in the list`, life: 3000 })
-    window.toast({ severity: 'error', summary: "Channel Not Added", detail: 'You can only add one instance of a channel!', group: 'main', life: 3000 })
+    if (makeMain) { mainChannel(channel) } else {
+      window.toast({ severity: 'error', summary: "Channel Not Added", detail: 'You can only add one instance of a channel!', group: 'main', life: 3000 })
+    }
   }
 
   updateDocumentTitle()

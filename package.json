@@ -1,7 +1,7 @@
 {
   "name": "multi-lurk",
   "version": "1.0.0",
-  "description": "A custom Twitch client that makes watching and switching between multiple streams at once easy",
+  "description": "A custom Twitch client that makes watching multiple streams at once and switching between them easy",
   "main": "./out/main/index.js",
   "author": "planet-bluto.net",
   "homepage": "https://multilurk.planet-bluto.net/",
