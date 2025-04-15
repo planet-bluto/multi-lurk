@@ -219,7 +219,7 @@ function handleWebFrameLoad(channel) {
     
     webView.loadURL(url.replace(newChannel, channel))
 
-    window.toast({ severity: 'info', summary: `Raided into ${newChannel}!`, detail: `Replaced channel where '${channel}' due to raid`, group: 'main', life: 5000 })
+    window.toast({ severity: 'info', summary: `Raided into ${newChannel}!`, detail: `Replaced channel where '${channel}' was due to raid`, group: 'main', life: 5000 })
   }
 }
 
