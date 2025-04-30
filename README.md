@@ -20,6 +20,7 @@ A custom Twitch client that makes watching multiple streams at once and switchin
 - **ALT + -:** Zoom Page Out
 - **ALT + T:** New stream popup
 - **ALT + SHIFT + W:** Close all open streams
+- **holding SHIFT when clicking on channel:** Opens in channel rack instead of the main channel slot
 
 ## Contribute
 

@@ -383,6 +383,10 @@ function gotoDownload() {
   window.open("https://github.com/planet-bluto/multi-lurk/releases", "_blank")
 }
 
+function gotoDonations() {
+  window.open("https://ko-fi.com/planet_bluto/", "_blank")
+}
+
 
 var sideIconEye = useTemplateRef('sideIconEye')
 var eyeAng = 0
@@ -425,8 +429,11 @@ function lerpAngle(A, B, w) {
 
 const sideIconEyeHovering = ref(false)
 
+const shiftDown = ref(false)
+document.addEventListener('keydown', (_event) => { if (_event.shiftKey) { shiftDown.value = true } })
+document.addEventListener('keyup', (_event) => { if (_event.shiftKey) { shiftDown.value = false } })
 function clickChannelSidebar(channel) {
-  addChannel(channel)
+  addChannel(channel, (!shiftDown.value))
   // mainChannel(channel)
 }
 
@@ -447,11 +454,13 @@ function clickChannelSidebar(channel) {
     </div>
   </Popover>
   <Dialog v-model:visible="startupPopupVisible" header="MultiLurk!">
-    <p style="font-size: 18px; margin-bottom: 15px;">Welcome to <span style="color: #782ce9; font-weight: bold;">MultiLurk</span>! A custom Twitch client that makes watching multiple streams at once and switching between them easy!</p>
+    <p :style="`font-size: 18px; margin-bottom: ${onWebVersion() ? 0 : 15}px;`">Welcome to <span style="color: #782ce9; font-weight: bold;">MultiLurk</span>! A custom Twitch client that makes watching multiple streams at once and switching between them easy!</p>
+    <p style="font-size: 18px; margin-bottom: 15px; color: #ff2929; font-weight: bold;" v-show="onWebVersion()">Syncing following list is currently not available on web version! (I need server hosting so bad)</p>
     <div style="display: flex; gap: 15px">
-      <Button label="Login With Twitch!" severity="info" @click="initiateLogin"></Button>
+      <Button label="Login With Twitch!" severity="info" v-show="!onWebVersion()" @click="initiateLogin"></Button>
       <Button label="Logout" severity="danger" v-show="tokenStored()" @click="initiateLogout"></Button>
       <Button label="Download on Windows!" severity="success" v-show="onWebVersion()" @click="gotoDownload"></Button>
+      <Button label="Donate!" severity="help" style="--p-button-label-font-weight: 900" @click="gotoDonations"></Button>
     </div>
   </Dialog>
   <div id="sidebar" ref="sidebar">
